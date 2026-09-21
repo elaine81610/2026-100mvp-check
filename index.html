@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2026年 100MVP 評選結果查詢</title>
+  <meta name="description" content="2026年 100MVP 評選結果查詢系統" />
+  
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  
+  <style>
+    :root {
+      --app-bg: #F4F5F7;        /* 適合嵌入官網的淺色背景 */
+      --main-bg: #FFFFFF;
+      --accent-gold: #C69A55;
+      --input-bg: #F9F7F3;
+      --text-main: #1D1D1D;
+      --text-muted: #8E929C;
+      --border-subtle: #EAE6DF;
+    }
+
+    body {
+      background-color: var(--app-bg);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      padding: 1rem;
+      color: var(--text-main);
+      box-sizing: border-box;
+    }
+    
+    .app-window {
+      margin: auto;
+      width: 100%;
+      max-width: 600px;
+      background-color: var(--main-bg);
+      border-radius: 24px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+      padding: 3rem 2.5rem;
+    }
+
+    h2 {
+      color: var(--text-main);
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .form-control {
+      background-color: var(--input-bg) !important;
+      border: 1px solid transparent !important;
+      color: var(--text-main) !important;
+      padding: 0.8rem 1.2rem;
+      border-radius: 12px;
+      transition: all 0.2s ease;
+    }
+    .form-control:focus {
+      background-color: #FFFFFF !important;
+      border-color: var(--accent-gold) !important;
+      box-shadow: 0 0 0 4px rgba(198, 154, 85, 0.15) !important;
+    }
+
+    .btn-brand-primary {
+      background-color: var(--accent-gold);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 12px;
+      padding: 0.9rem 2rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .btn-brand-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(198, 154, 85, 0.3);
+      background-color: #B58A46;
+      color: #FFFFFF;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-window">
+    <div class="text-center mb-4">
+      <img src="https://image-cdn.learnin.tw/bnextmedia/image/album/2026-09/4uxe-1789547000.png" alt="100 MVP Logo" style="max-height: 120px; margin-bottom: 1.5rem;" />
+      <h2 class="mb-3">2026年 100MVP 評選結果查詢</h2>
+      <p class="text-muted" style="font-size: 1.05rem;">請輸入您的「 Event go 訂單編號」及「候選人姓名」查詢結果</p>
+    </div>
+    <div class="search-form-vertical text-start">
+      <div class="mb-3">
+        <label class="form-label fw-bold text-muted small">Event go 訂單編號</label>
+        <input type="text" id="searchOrderId" class="form-control form-control-lg" placeholder="例如：280901 (共六碼，需完全符合)" />
+      </div>
+      <div class="mb-4">
+        <label class="form-label fw-bold text-muted small">候選人(團隊)姓名</label>
+        <input type="text" id="searchName" class="form-control form-control-lg" placeholder="例如：王大明" />
+      </div>
+      <div class="d-grid mt-4">
+        <button class="btn btn-brand-primary btn-lg" id="searchBtn" type="button">確認查詢</button>
+      </div>
+    </div>
+    
+    <div id="searchResult" class="mt-4"></div>
+  </div>
+
+  <script>
+    // 您已經更新好正確 ID 的最新 API 網址
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxFajKhxD3dLT7NlE5mx4PfvkiDRFClklSnH9PTgAbT80XtTNyFubYtlfm_lUKZoiNwXA/exec";
+
+    document.getElementById('searchBtn').addEventListener('click', async () => {
+      const orderIdQuery = document.getElementById('searchOrderId').value.trim();
+      const nameQuery = document.getElementById('searchName').value.trim();
+      const resultDiv = document.getElementById('searchResult');
+      const searchBtn = document.getElementById('searchBtn');
+      
+      if (!orderIdQuery && !nameQuery) {
+        resultDiv.innerHTML = `<div class="text-danger fw-bold mt-3 text-center">請至少輸入一項查詢條件</div>`;
+        return;
+      }
+
+      // 載入狀態
+      searchBtn.disabled = true;
+      searchBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>查詢中...';
+      resultDiv.innerHTML = '';
+
+      try {
+        const response = await fetch(GAS_API_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            orderId: orderIdQuery,
+            candidateName: nameQuery
+          }),
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8',
+          }
+        });
+
+        const result = await response.json();
+
+        if (result.status === 'success' && result.data) {
+          const found = result.data;
+          const statusRaw = String(found.statusRaw || "").toLowerCase();
+          
+          // 模糊比對得獎關鍵字 (依據貴司實際情況調整)
+          const isWinner = statusRaw.includes('得獎') || statusRaw.includes('入選') || statusRaw.includes('正取') || statusRaw === 'super' || statusRaw === '1~super' || statusRaw === '0.5' || statusRaw === '是';
+
+          if (isWinner) {
+            // 情境 3: 得獎
+            resultDiv.innerHTML = `
+              <div class="mt-4 p-4 text-center rounded-4" style="background: rgba(198, 154, 85, 0.05); border: 1px dashed var(--accent-gold); animation: fadeIn 0.4s ease;">
+                <h5 class="mb-3 fs-4" style="color: var(--accent-gold); font-weight: 800;"> 恭喜您榮獲 2026 年第 19 屆 100MVP 經理人！ </h5>
+                <div class="mb-4 fs-5" style="color: var(--text-main);">
+                  <strong class="fs-4">候選人：${found.candidateName}</strong>
+                </div>
+                <p class="mb-4" style="color: var(--text-main); line-height: 1.6;">
+                  為保障個人隱私，專屬登入資訊已寄送至您報名時留存的電子信箱。<br>
+                  <span class="text-muted" style="font-size: 0.95rem;">請點擊下方按鈕，前往確認得主相關資料。</span>
+                </p>
+                <a href="#" target="_blank" class="btn btn-brand-primary px-4 shadow-sm" onclick="alert('稍後請將這裡的 href 替換為【得獎人資料確認頁】的網址');">前往資料確認頁</a>
+              </div>
+            `;
+          } else {
+            // 情境 2: 落選
+            resultDiv.innerHTML = `
+              <div class="mt-4 p-4 text-center bg-white shadow-sm rounded-4 border border-light" style="animation: fadeIn 0.4s ease;">
+                <h5 class="mb-3 fs-5 text-muted fw-bold">感謝您的參與</h5>
+                <p class="text-muted mb-0" style="line-height: 1.6;">經評審團決議，很遺憾您未在此次獲獎名單中。<br>感謝您對本活動的支持，期待未來能再次看到您的優秀表現！</p>
+              </div>
+            `;
+          }
+        } else if (result.status === 'not_found') {
+          // 情境 1: 查無資料
+          resultDiv.innerHTML = `
+            <div class="mt-4 p-4 text-center bg-white shadow-sm rounded-4 border border-light" style="animation: fadeIn 0.4s ease;">
+              <h5 class="mb-3 fs-5 text-danger fw-bold">查無資料</h5>
+              <p class="text-muted mb-4">請確認您輸入的「Event Go 訂單編號」或「候選人姓名」是否正確。<br>若持續無法查詢，請聯繫主辦單位。</p>
+              <div class="p-3 rounded-3" style="background-color: #F9F7F3; border: 1px solid #EAE6DF;">
+                <p class="mb-1 text-dark fw-bold">100MVP 專案小組</p>
+                <p class="mb-0 text-muted small">信箱：100mvp@managertoday.com.tw</p>
+              </div>
+            </div>
+          `;
+        } else {
+           resultDiv.innerHTML = `
+             <div class="mt-4 p-4 text-start text-danger fw-bold bg-white shadow-sm rounded-4 border border-light" style="word-break: break-all;">
+               <h5>系統偵錯資訊：</h5>
+               <p class="fw-normal mb-0">${result.message}</p>
+             </div>
+           `;
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `<div class="mt-4 p-4 text-center text-danger fw-bold bg-white shadow-sm rounded-4 border border-light">網路連線異常，請確認網路狀態後再試一次。</div>`;
+      } finally {
+        searchBtn.disabled = false;
+        searchBtn.innerHTML = '確認查詢';
+      }
+    });
+  </script>
+  <style>
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "name": "得獎者資訊確認 Web App",
+  "description": "提供得獎者查詢、登入並確認得獎資訊的系統",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
