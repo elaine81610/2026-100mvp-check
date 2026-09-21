@@ -139,10 +139,14 @@
 
         if (result.status === 'success' && result.data) {
           const found = result.data;
-          const statusRaw = String(found.statusRaw || "").toLowerCase();
           
-          // 模糊比對得獎關鍵字 (依據貴司實際情況調整)
-          const isWinner = statusRaw.includes('得獎') || statusRaw.includes('入選') || statusRaw.includes('正取') || statusRaw === 'super' || statusRaw === '1~super' || statusRaw === '0.5' || statusRaw === '是';
+          // 支援後端直接回傳布林值 isWinner (建議做法)，同時保留向下相容
+          const isWinner = typeof found.isWinner === 'boolean'
+            ? found.isWinner
+            : (() => {
+                const statusRaw = String(found.statusRaw || "").toLowerCase();
+                return statusRaw.includes('得獎') || statusRaw.includes('入選') || statusRaw.includes('正取') || statusRaw === 'super' || statusRaw === '1~super' || statusRaw === '0.5' || statusRaw === '是';
+              })();
 
           if (isWinner) {
             // 情境 3: 得獎
@@ -150,7 +154,7 @@
               <div class="mt-4 p-4 text-center rounded-4" style="background: rgba(198, 154, 85, 0.05); border: 1px dashed var(--accent-gold); animation: fadeIn 0.4s ease;">
                 <h5 class="mb-3 fs-4" style="color: var(--accent-gold); font-weight: 800;"> 恭喜您榮獲 2026 年第 19 屆 100MVP 經理人！ </h5>
                 <div class="mb-4 fs-5" style="color: var(--text-main);">
-                  <strong class="fs-4">候選人：${found.candidateName}</strong>
+                  <strong class="fs-4">候選人：<span id="displayCandidateName"></span></strong>
                 </div>
                 <p class="mb-4" style="color: var(--text-main); line-height: 1.6;">
                   為保障個人隱私，專屬登入資訊已寄送至您報名時留存的電子信箱。<br>
@@ -159,6 +163,12 @@
                 <a href="#" target="_blank" class="btn btn-brand-primary px-4 shadow-sm" onclick="alert('稍後請將這裡的 href 替換為【得獎人資料確認頁】的網址');">前往資料確認頁</a>
               </div>
             `;
+
+            // 使用 textContent 安全植入文字，避免 XSS 注入攻擊
+            const nameEl = document.getElementById('displayCandidateName');
+            if (nameEl) {
+              nameEl.textContent = found.candidateName || '';
+            }
           } else {
             // 情境 2: 落選
             resultDiv.innerHTML = `
@@ -181,14 +191,17 @@
             </div>
           `;
         } else {
-           resultDiv.innerHTML = `
-             <div class="mt-4 p-4 text-start text-danger fw-bold bg-white shadow-sm rounded-4 border border-light" style="word-break: break-all;">
-               <h5>系統偵錯資訊：</h5>
-               <p class="fw-normal mb-0">${result.message}</p>
-             </div>
-           `;
+          // 隱藏後端系統內部錯誤細節，記錄於 console.error，對使用者顯示親切提示
+          console.error("後端系統異常資訊:", result && result.message);
+          resultDiv.innerHTML = `
+            <div class="mt-4 p-4 text-center bg-white shadow-sm rounded-4 border border-light" style="animation: fadeIn 0.4s ease;">
+              <h5 class="mb-2 fs-5 text-danger fw-bold">查詢系統暫時無法處理</h5>
+              <p class="text-muted mb-0">系統繁忙或連線異常，請稍後再試一次。<br>若持續出現此問題，請聯繫 100MVP 專案小組。</p>
+            </div>
+          `;
         }
       } catch (error) {
+        console.error("網路連線或請求異常:", error);
         resultDiv.innerHTML = `<div class="mt-4 p-4 text-center text-danger fw-bold bg-white shadow-sm rounded-4 border border-light">網路連線異常，請確認網路狀態後再試一次。</div>`;
       } finally {
         searchBtn.disabled = false;
